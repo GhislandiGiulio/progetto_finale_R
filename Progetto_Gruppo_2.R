@@ -1,9 +1,9 @@
 library(readxl)
 library(dplyr)
 
-setwd("INSERISCI CARTELLA QUI")
+setwd("INSERISCI PATH SCRIPT QUI")
 
-DatiX <- read_excel("GRUPPO_1-2._France_Bakery.xlsx")
+DatiX <- read_excel("dataset_french_bakery.xlsx")
 
 head(DatiX)
 names(DatiX)
