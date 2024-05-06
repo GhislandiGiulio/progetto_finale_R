@@ -1,7 +1,8 @@
 library(readxl)
+library(writexl)
 library(dplyr)
 
-setwd("INSERISCI PATH SCRIPT QUI")
+setwd("C:\\Users\\GiulioGhislandi\\OneDrive - ITS Angelo Rizzoli\\Moduli\\UFS-07\\progetto_finale")
 
 DatiX <- read_excel("dataset_french_bakery.xlsx")
 
@@ -35,3 +36,6 @@ head(DatiFR)
 unique(DatiFR$Players)
 
 DatiFR$Players <- as.factor(DatiFR$Players)
+
+write_xlsx(DatiFR, "commenti_addestramento.xlsx")
+
