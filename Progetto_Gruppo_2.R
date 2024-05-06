@@ -1,7 +1,8 @@
 library(readxl)
 library(dplyr)
 
-setwd("C:/Users/FrancescoIuorio/Downloads")
+setwd("INSERISCI CARTELLA QUI")
+
 DatiX <- read_excel("GRUPPO_1-2._France_Bakery.xlsx")
 
 head(DatiX)
