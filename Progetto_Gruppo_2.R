@@ -2,46 +2,36 @@ library(readxl)
 library(writexl)
 library(dplyr)
 
+# impostazione della cartella di lavoro
 setwd(getwd())
 
-DatiX <- read_excel("dataset_french_bakery.xlsx")
+# importazione del dataset
+df_bakeries <- read_excel("dataset_bakery.xlsx")
 
-head(DatiX)
-names(DatiX)
-str(DatiX)
-summary(DatiX)
+# seleziono solo le righe delle recensioni in lingua francese (fr)
+df_french_bakeries <- filter(df_bakeries, lang_value == "fr")
 
-head(is.na(DatiX), 7)
+# seleziono solo le colonne che mi interessano
+df_french_bakeries <- select(df_french_bakeries, -social, -likes, -lang_value)
 
-apply(DatiX, 2, function(dataset) sum(is.na(dataset)))
+# rimozione righe con dei valori mancanti (NA)
+clean_df_french_bakeries <- na.omit(df_french_bakeries)
 
-unique(DatiX$social)
-unique(DatiX$lang_value)
+# stampa numero di righe rimanenti dopo filtri
+print("numero di righe rimanenti dopo pulizia: ")
+print(nrow(clean_df_french_bakeries))
 
-DatiInutili <- sum(is.na(DatiX$text) & is.na(DatiX$score_rating))
-head(DatiInutili)
+# aggiunta della colonna "sentiment"
+clean_df_french_bakeries$sentiment <- NA
 
-sum(DatiX$lang_value == 'fr')
+### estrazione di un sample da valutare
+training_sample <- clean_df_french_bakeries[sample(nrow(clean_df_french_bakeries), 200), ]
 
-DatiBaguette <- filter(DatiX, lang_value == 'fr')
-sum(is.na(DatiBaguette$text))
-sum(is.na(DatiBaguette$score_rating))
-
-cat('Togliamo due colonne perché inutili e una perché vuota(riscrivere)')
-
-DatiFR <- select(DatiBaguette, -social, -likes, -lang_value)
-
-head(DatiFR)
-
-unique(DatiFR$Players)
-
-DatiFR$Players <- as.factor(DatiFR$Players)
-
-### Classificazione manuale del training set
+# creazione dell'excel per riempire valori
+write_xlsx(training_sample, path = "df_before_sentiment.xlsx")
 
 # reimportazione del dataset dopo valutazione manuale
-training_set = read_excel("commenti_addestramento_fr_training.xlsx")
+training_set <- read_excel("df_after_sentiment.xlsx")
 
 ### Creazione del test set
-test_set <- anti_join(DatiFR, training_set, 
-                      by = c("text", "date_created_at", "score_rating", "Players"))
+test_set <- anti_join(clean_df_french_bakeries, training_sample)
