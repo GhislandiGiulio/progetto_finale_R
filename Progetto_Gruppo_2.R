@@ -45,15 +45,3 @@ training_set = read_excel("commenti_addestramento_fr_training.xlsx")
 ### Creazione del test set
 test_set <- anti_join(DatiFR, training_set, 
                       by = c("text", "date_created_at", "score_rating", "Players"))
-
-1018-200
-
-prova <- select(training_set, !sentiment)
-
-training_v1 <- select(training_set, text)
-dat_v1 <- select(DatiFR, text)
-
-x <- anti_join(dat_v1, training_v1)
-
-x <- rbind(test_set, prova)
-x$dup <- duplicated(x$text)
