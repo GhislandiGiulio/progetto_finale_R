@@ -425,39 +425,3 @@ print(AverageAccuracy_RF)
 print(AverageF1_RF)
 
 
-
-#
-####  creazione della DFM del database intero
-#
-## creazione dei token
-#tokens <- tokens(corpus_french_bakeries, 
-#                 remove_punct = TRUE, 
-#                 remove_symbols = TRUE,
-#                 remove_numbers = TRUE) %>% tokens_tolower()
-#
-#tokens <- tokens_select(tokens, pattern = stopwords("french"), selection = "remove")
-#
-## creazione dfm dai token
-#dfm_french_bakeries <- dfm(tokens)
-#
-## conversione dfm in dataFrame per stampa con KBL
-#dfm_df <- quanteda::convert(dfm_french_bakeries, to = "data.frame")
-#
-## stampa della dfm
-#print(kbl(dfm_df[1:5, 1:15], longtable = TRUE, booktabs = TRUE, 
-#    caption = "Subset of DFM") %>%
-#  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
-#                full_width = FALSE, font_size = 10) %>%
-#  row_spec(0, bold = TRUE, background = "#b8daba", color = "black", font_size = 11))
-#
-##Creiamo una wordcloud
-#print(textplot_wordcloud(dfm_french_bakeries,
-#                   min_size = 1.5,
-#                   max_size = 4,
-#                   min.count = 10,
-#                   max_words = 50,
-#                   random.order = FALSE,
-#                   random_color = FALSE,
-#                   rotation = 0,    #rotazione delle parole
-#                   colors = RColorBrewer::brewer.pal(8,"Dark2")))
-
