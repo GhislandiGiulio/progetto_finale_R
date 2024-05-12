@@ -1,3 +1,15 @@
+# Installazione delle librerie se non sono già installate
+packages <- c("readxl", "writexl", "dplyr", "kableExtra", "readtext", "quanteda", "cvTools", "caret", "reshape2", "gridExtra")
+
+install_packages <- function(package) {
+  if (!requireNamespace(package, quietly = TRUE)) {
+    install.packages(package)
+  }
+}
+
+lapply(packages, install_packages)
+
+#### PULIZIA DEI DATI
 library(readxl)
 library(writexl)
 library(dplyr)
