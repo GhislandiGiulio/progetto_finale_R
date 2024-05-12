@@ -120,141 +120,6 @@ matrice_test_set <- as.matrix(dfm_test_set)
 dfm_training_set@docvars$sentiment <- as.factor(dfm_training_set@docvars$sentiment)
 
 
-    #### TRAINING E CLASSIFICAZIONE
-
-### Naive Bayes Model
-library(naivebayes)
-
-# avviamento del modello
-system.time(NaiveBayesModel <- multinomial_naive_bayes
-            (x=matrice_training_set,
-             y=dfm_training_set@docvars$sentiment,
-             laplace = 1))
-
-# mostriamo le caratteristiche del modello
-print(summary(NaiveBayesModel))
-
-# memorizzazione della previsione in un oggetto
-NB_test_predicted <- predict(NaiveBayesModel,
-                            matrice_test_set)
-
-# visualizzazione dei risultati della previsione NB con valori assolluti e proporzioni
-print(table(NB_test_predicted))
-print(round(prop.table(table(NB_test_predicted )), 2))
-
-### Random Forest Model
-library(randomForest)
-
-# avviamento del modello
-system.time(RF <- randomForest(y= dfm_training_set@docvars$sentiment, 
-                               x= matrice_training_set, 
-                               importance=TRUE,  
-                               do.trace=FALSE, 
-                               ntree=500))
-
-
-# visualizzazione dei risultati della previsione RF
-print(RF)
-
-# visualizzazione grafico dei risultati 
-plot(RF, type = "l", col = c("black", "steelblue4","violetred4", "springgreen4"),
-     main = "Random Forest Model Errors: sentiment variable")
-
-legend("topright", horiz = FALSE, cex = 0.7,
-       fill = c("springgreen4", "black", "steelblue4", "violetred4"),
-       c("Positive error", "Average error", "Negative error", "Neutral error"))
-
-
-# memorizzazione degli errori in un data frame
-rf_errori <- as.data.frame(RF$err.rate)
-
-# estrazione del numero di tree associati con l'errore più basso
-print(min_tree <- which.min(rf_errori$OOB)) # = 1
-
-# avviamento del il modello con ntree ottimizzato
-system.time(RF2 <- randomForest(y = dfm_training_set@docvars$sentiment, 
-                                x=matrice_training_set,
-                                importance=FALSE, 
-                                ntree=min_tree, 
-                                do.trace=FALSE))
-
-# visualizzazione dei risultati della previsione RF
-print(RF2)
-
-# visualizzazione grafico dei risultati 
-plot(RF2, type = "l", col = c("black", "steelblue4","violetred4", "springgreen4"),
-     main = "Random Forest Model Errors: sentiment variable")
-
-legend("topright", horiz = FALSE, cex = 0.7,
-       fill = c("springgreen4", "black", "steelblue4", "violetred4"),
-       c("Positive error", "Average error", "Negative error", "Neutral error"))
-
-
-# predizione dei risultati
-system.time(RF_test_predicted <- predict(RF2, matrice_test_set ,type="class"))
-
-# visualizzazione del sentiment in valori assoluti e in valori relativi
-print(table(RF_test_predicted))
-print(round(prop.table(table(RF_test_predicted)), 2))
-
-
-library(iml)
-library(future)
-library(future.callr)
-library(e1071)
-
-
-# avviamento del modello
-system.time(support_vector_machine <- svm(
-  y= dfm_training_set@docvars$sentiment,
-  x=matrice_training_set, kernel='linear', cost = 1))
-
-# visualizzazione numero di support vectors considerati
-length(support_vector_machine$index)
-
-# predizione dei dati del test set
-system.time(SV_test_predicted <- predict(support_vector_machine, matrice_test_set))
-
-# visualizzazione della distribuzione del sentiment in valori assoluti e relativi
-print(table(SV_test_predicted))
-print(round(prop.table(table(SV_test_predicted))))
-
-# aggiunta della variabile nel test set
-dfm_test_set$PREDICTION_SV <- SV_test_predicted
-
-
-  #### CONFRONTO DEI RISULTATI
-# creazione di un dataframe che include la distribuzione del sentiment predetta dai tre algoritmi
-results <- as.data.frame(rbind(prop.table(table(NB_test_predicted)),
-                               prop.table(table(RF_test_predicted)),
-                               prop.table(table(SV_test_predicted))))
-
-# visualizzazione della struttura del dataset
-print(results)
-
-# aggiunta di una colonna che indica l'algoritmo di riferimento
-results$algorithm <- c("Naive Bayes", "Random Forest", "Support Vector Machine")
-
-# melting del dataframe per ottenere una singola variabile con tre livelli: positivo, negativo, neutro
-library(reshape2)
-df.long<-melt(results,id.vars=c("algorithm"))
-print(df.long)
-
-
-library(ggplot2)
-# creazione del plot
-ggplot(df.long,aes(algorithm,value,fill=variable))+
-  geom_bar(position="dodge",stat="identity") + scale_fill_manual(values = c("violetred3", "yellow3", "orange2")) +
-  labs(title = "Comparazione delle predizioni") +
-  theme(axis.text.x = element_text(color="#993333", angle=90)) + coord_flip() +
-  ylab(label="Proporzione delle categorie nel test set") + xlab("Algoritmi") +
-  guides(fill=guide_legend(title="Categorie di \nsentiment")) +
-  theme(plot.title = element_text(color = "black", size = 12, face = "plain"),
-        axis.title=element_text(size=11,face="plain"),
-        axis.text= element_text(size =10, face = "italic")
-  )
-
-
   #### CROSS VALIDATION
 
 library(cvTools)
@@ -550,19 +415,38 @@ bakeries_drivers <- dfm_lookup(dfm_predicted_df, #dfm su cui lo applico
 # conversione dell'output in data frame
 df_bakeries_drivers <- convert(bakeries_drivers, to = "data.frame")
 
-#2. Aggiungere un id che verrà utilizzato per il merging
+# aggiunta un id che verrà utilizzato per il merging
 df_bakeries_drivers$id <- 1:nrow(df_bakeries_drivers)
 
-## Unione dei due dataset
+# unione dei due dataset
 driver_analysis <- full_join(df_bakeries_drivers, predicted_df, by = join_by("id"))
 
+# selezione delle variabili rilevanti
+driver_analysis <- select(driver_analysis, id, Players, text, Personale, Qualità, Prezzo, Location, score_rating, sentiment)
 
-#Selezioniamo soltanto le variabili rilevanti
-driver_analysis <- select(driver_analysis, id, text, Personale, Qualità, Prezzo, Location, score_rating, sentiment)
+print(driver_analysis)
 
-#Il dataset finale
-kbl(driver_analysis[1:15, ], longtable = T, booktabs = T, 
+# visualizzazione dataset con sentiment e driver analysis
+print(kbl(driver_analysis[1:15, ], longtable = T, booktabs = T, 
     caption = "I driver menzionati nelle recensioni") %>%
   kable_styling(c("bordered", "condensed", "hover"), 
                 full_width = F, font_size = 8) %>%
-  row_spec(0, color = "black", bold = T, background = "#b8daba", font_size = 11)
+  row_spec(0, color = "black", bold = T, background = "#b8daba", font_size = 11))
+
+## Creazione dataframe finale
+print(driver_analysis %>% group_by(Players))
+
+# Iterate over each unique value in the "Players" column
+for (player in unique(df$Players)) {
+  # Subset the dataframe for the current player
+  player_df <- df[df$Players == player, ]
+  
+  # Calculate the average sentiment score for the current player
+  player_sentiment <- mean(ifelse(player_df$Sentiment == "positive", 10,
+                                  ifelse(player_df$Sentiment == "neutral", 5, 0)), na.rm = TRUE)
+  
+  # Assign the average sentiment score to the vector
+  sentiment_scores[player] <- player_sentiment
+}
+
+
