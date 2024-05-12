@@ -198,7 +198,6 @@ system.time(for(i in 1:k){
     matrice_training_set2 [folds$subsets[folds$which != i], ]
   validation_set <-
     matrice_training_set2 [folds$subsets[folds$which == i], ]
-  set.seed(123)
   RandomForest <- randomForest(
     y= dfm_training_set[folds$subsets[folds$which != i], ]
                                @docvars$sentiment ,
@@ -247,7 +246,6 @@ system.time(for(i in 1:k){
     matrice_training_set2 [folds$subsets[folds$which != i], ]
   validation_set <-
     matrice_training_set2 [folds$subsets[folds$which == i], ]
-  set.seed(123)
   support_vector_machine <- svm(
     y= dfm_training_set[folds$subsets[folds$which != i], ]
     @docvars$sentiment ,
@@ -371,8 +369,10 @@ grid.arrange(plot_accuracy, plot_f1, nrow=2)
 
   #### DRIVER ANALYSIS
 
-# Creazione del dataframe con sentiment previsto
-predicted_df <- transform(test_set, sentiment = df_measures_NB) %>%
+# Creazione del dataframe con sentiment previsto, calcolato al momento con NB (modello migliore)
+predicted_df <- transform(
+  test_set, 
+  sentiment = (NB_test_predicted <- predict(NaiveBayesModel, matrice_test_set))) %>%
   rbind(training_set, .)
 
 predicted_df$id <- 1:nrow(predicted_df)
@@ -421,10 +421,15 @@ df_bakeries_drivers$id <- 1:nrow(df_bakeries_drivers)
 # unione dei due dataset
 driver_analysis <- full_join(df_bakeries_drivers, predicted_df, by = join_by("id"))
 
-# selezione delle variabili rilevanti
-driver_analysis <- select(driver_analysis, id, Players, text, Personale, Qualità, Prezzo, Location, score_rating, sentiment)
+driver_analysis <- driver_analysis %>%
+  mutate(sentiment = case_when(
+    sentiment == "positive" ~ 100.0,
+    sentiment == "negative" ~ 0.0,
+    sentiment == "neutral" ~ 50.0
+  ))
 
-print(driver_analysis)
+# selezione delle variabili rilevanti
+driver_analysis <- select(driver_analysis, id, Players, text, Personale, Qualità, Prezzo, Location, score_rating, sentiment, sentiment)
 
 # visualizzazione dataset con sentiment e driver analysis
 print(kbl(driver_analysis[1:15, ], longtable = T, booktabs = T, 
@@ -433,15 +438,240 @@ print(kbl(driver_analysis[1:15, ], longtable = T, booktabs = T,
                 full_width = F, font_size = 8) %>%
   row_spec(0, color = "black", bold = T, background = "#b8daba", font_size = 11))
 
-## Creazione dataframe finale
-print(driver_analysis %>% group_by(Players))
 
-# Split dataframe into a list of dataframes based on unique values of Players
+  #### CREAZIONE TABELLA FINALE
+# separazione del df driver_analysis in un df per ogni player
 list_of_dfs <- split(driver_analysis, driver_analysis$Players)
 
-# Optionally, if you want to assign each dataframe to a separate variable
+# creazione di una variabile per ogni pasticceria
 for (player_name in names(list_of_dfs)) {
-  assign(paste0("df_", player_name), list_of_dfs[[player_name]])
+  # Remove spaces from player_name
+  clean_player_name <- gsub(" ", "_", player_name)
+  # Assign dataframe to a variable with cleaned name
+  assign(paste0("df_", clean_player_name), list_of_dfs[[player_name]])
 }
+
+
+df_Ange_Boulangerie$n_recensioni <- nrow(`df_Ange_Boulangerie`)
+df_Ange_Boulangerie$n_recensioni_qualita <- sum(df_Ange_Boulangerie$Qualità > 0)
+df_Ange_Boulangerie$n_recensioni_prezzo <- sum(df_Ange_Boulangerie$Prezzo > 0)
+df_Ange_Boulangerie$n_recensioni_location <- sum(df_Ange_Boulangerie$Location > 0)
+df_Ange_Boulangerie$n_recensioni_personale <- sum(df_Ange_Boulangerie$Personale > 0)
+
+df_Ange_Boulangerie$rating_medio <- mean(df_Ange_Boulangerie$score_rating)
+df_Ange_Boulangerie$sentiment_medio <- mean(df_Ange_Boulangerie$sentiment)
+
+df_Ange_Boulangerie$rating_medio_qualita <- df_Ange_Boulangerie %>%
+  filter(Qualità > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+df_Ange_Boulangerie$rating_medio_prezzo <- df_Ange_Boulangerie %>%
+  filter(Prezzo > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+df_Ange_Boulangerie$rating_medio_location <- df_Ange_Boulangerie %>%
+  filter(Location > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+df_Ange_Boulangerie$rating_medio_personale <- df_Ange_Boulangerie %>%
+  filter(Personale > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_Ange_Boulangerie$sentiment_medio_qualita <- df_Ange_Boulangerie %>%
+  filter(Qualità > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+df_Ange_Boulangerie$sentiment_medio_prezzo <- df_Ange_Boulangerie %>%
+  filter(Prezzo > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+df_Ange_Boulangerie$sentiment_medio_location <- df_Ange_Boulangerie %>%
+  filter(Location > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+df_Ange_Boulangerie$sentiment_medio_personale <- df_Ange_Boulangerie %>%
+  filter(Personale > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+# Counting the number of rows
+df_la_croissanterie$n_recensioni <- nrow(df_la_croissanterie)
+df_la_croissanterie$n_recensioni_qualita <- sum(df_la_croissanterie$Qualità > 0)
+df_la_croissanterie$n_recensioni_prezzo <- sum(df_la_croissanterie$Prezzo > 0)
+df_la_croissanterie$n_recensioni_location <- sum(df_la_croissanterie$Location > 0)
+df_la_croissanterie$n_recensioni_personale <- sum(df_la_croissanterie$Personale > 0)
+
+# Calculating mean rating
+df_la_croissanterie$rating_medio <- mean(df_la_croissanterie$score_rating)
+df_la_croissanterie$sentiment_medio <- mean(df_la_croissanterie$sentiment)
+
+# Calculating mean rating and sentiment for each aspect
+df_la_croissanterie$rating_medio_qualita <- df_la_croissanterie %>%
+  filter(Qualità > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_la_croissanterie$rating_medio_prezzo <- df_la_croissanterie %>%
+  filter(Prezzo > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_la_croissanterie$rating_medio_location <- df_la_croissanterie %>%
+  filter(Location > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_la_croissanterie$rating_medio_personale <- df_la_croissanterie %>%
+  filter(Personale > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_la_croissanterie$sentiment_medio_qualita <- df_la_croissanterie %>%
+  filter(Qualità > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+df_la_croissanterie$sentiment_medio_prezzo <- df_la_croissanterie %>%
+  filter(Prezzo > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+df_la_croissanterie$sentiment_medio_location <- df_la_croissanterie %>%
+  filter(Location > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+df_la_croissanterie$sentiment_medio_personale <- df_la_croissanterie %>%
+  filter(Personale > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+# Counting the number of rows
+df_Brioche_Doree$n_recensioni <- nrow(df_Brioche_Doree)
+df_Brioche_Doree$n_recensioni_qualita <- sum(df_Brioche_Doree$Qualità > 0)
+df_Brioche_Doree$n_recensioni_prezzo <- sum(df_Brioche_Doree$Prezzo > 0)
+df_Brioche_Doree$n_recensioni_location <- sum(df_Brioche_Doree$Location > 0)
+df_Brioche_Doree$n_recensioni_personale <- sum(df_Brioche_Doree$Personale > 0)
+
+# Calculating mean rating
+df_Brioche_Doree$rating_medio <- mean(df_Brioche_Doree$score_rating)
+df_Brioche_Doree$sentiment_medio <- mean(df_Brioche_Doree$sentiment)
+
+# Calculating mean rating and sentiment for each aspect
+df_Brioche_Doree$rating_medio_qualita <- df_Brioche_Doree %>%
+  filter(Qualità > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_Brioche_Doree$rating_medio_prezzo <- df_Brioche_Doree %>%
+  filter(Prezzo > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_Brioche_Doree$rating_medio_location <- df_Brioche_Doree %>%
+  filter(Location > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_Brioche_Doree$rating_medio_personale <- df_Brioche_Doree %>%
+  filter(Personale > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_Brioche_Doree$sentiment_medio_qualita <- df_Brioche_Doree %>%
+  filter(Qualità > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+df_Brioche_Doree$sentiment_medio_prezzo <- df_Brioche_Doree %>%
+  filter(Prezzo > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+df_Brioche_Doree$sentiment_medio_location <- df_Brioche_Doree %>%
+  filter(Location > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+df_Brioche_Doree$sentiment_medio_personale <- df_Brioche_Doree %>%
+  filter(Personale > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+
+
+# Counting the number of rows
+df_La_mie_Caline$n_recensioni <- nrow(df_La_mie_Caline)
+df_La_mie_Caline$n_recensioni_qualita <- sum(df_La_mie_Caline$Qualità > 0)
+df_La_mie_Caline$n_recensioni_prezzo <- sum(df_La_mie_Caline$Prezzo > 0)
+df_La_mie_Caline$n_recensioni_location <- sum(df_La_mie_Caline$Location > 0)
+df_La_mie_Caline$n_recensioni_personale <- sum(df_La_mie_Caline$Personale > 0)
+
+# Calculating mean rating
+df_La_mie_Caline$rating_medio <- mean(df_La_mie_Caline$score_rating)
+df_La_mie_Caline$sentiment_medio <- mean(df_La_mie_Caline$sentiment)
+
+# Calculating mean rating and sentiment for each aspect
+df_La_mie_Caline$rating_medio_qualita <- df_La_mie_Caline %>%
+  filter(Qualità > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_La_mie_Caline$rating_medio_prezzo <- df_La_mie_Caline %>%
+  filter(Prezzo > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_La_mie_Caline$rating_medio_location <- df_La_mie_Caline %>%
+  filter(Location > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_La_mie_Caline$rating_medio_personale <- df_La_mie_Caline %>%
+  filter(Personale > 0) %>%
+  summarize(mean_score_rating = mean(score_rating)) %>%
+  pull(mean_score_rating)
+
+df_La_mie_Caline$sentiment_medio_qualita <- df_La_mie_Caline %>%
+  filter(Qualità > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+df_La_mie_Caline$sentiment_medio_prezzo <- df_La_mie_Caline %>%
+  filter(Prezzo > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+df_La_mie_Caline$sentiment_medio_location <- df_La_mie_Caline %>%
+  filter(Location > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+df_La_mie_Caline$sentiment_medio_personale <- df_La_mie_Caline %>%
+  filter(Personale > 0) %>%
+  summarize(mean_sentiment = mean(sentiment, na.rm = TRUE)) %>%
+  pull(mean_sentiment)
+
+
+# unione dei dati dei df
+final_df <- rbind(df_Ange_Boulangerie, df_Brioche_Doree, df_La_mie_Caline, df_la_croissanterie)
+
+# rimozione colonne superflue
+final_df <- select(final_df, -text, -Qualità, -Personale, -Prezzo, -Location, -score_rating, -sentiment, -id)
+
+# raggruppamento
+final_df <- final_df %>%
+  group_by(Players) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE))
+
+write_xlsx(final_df, "final_results.xlsx")
+
+# visualizzazione dataset finale raggruppato
+print(kbl(final_df, longtable = T, booktabs = T, 
+          caption = "Riassunto finale delle Recensioni") %>%
+        kable_styling(c("bordered", "condensed", "hover"), 
+                      full_width = F, font_size = 8) %>%
+        row_spec(0, color = "black", bold = T, background = "#b8daba", font_size = 11))
 
 
