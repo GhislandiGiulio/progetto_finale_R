@@ -665,8 +665,6 @@ final_df <- final_df %>%
   group_by(Players) %>%
   summarise(across(where(is.numeric), mean, na.rm = TRUE))
 
-write_xlsx(final_df, "final_results.xlsx")
-
 # visualizzazione dataset finale raggruppato
 print(kbl(final_df, longtable = T, booktabs = T, 
           caption = "Riassunto finale delle Recensioni") %>%
