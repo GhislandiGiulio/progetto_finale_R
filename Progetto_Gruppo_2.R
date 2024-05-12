@@ -1,5 +1,5 @@
 # Installazione delle librerie se non sono già installate
-packages <- c("readxl", "writexl", "dplyr", "kableExtra", "readtext", "quanteda", "cvTools", "caret", "reshape2", "gridExtra")
+packages <- c("readxl", "writexl", "dplyr", "kableExtra", "readtext", "quanteda", "quanteda.textplots", "quanteda.textstats", "cvTools", "caret", "reshape2", "gridExtra", "e1071", "iml", "future", "future.callr", "syuzhet", "ggplot2", "newsmap", "naivebayes", "randomForest")
 
 install_packages <- function(package) {
   if (!requireNamespace(package, quietly = TRUE)) {
@@ -8,6 +8,11 @@ install_packages <- function(package) {
 }
 
 lapply(packages, install_packages)
+
+# importazione librerie
+for (package in packages) {
+  library(package, character.only = TRUE)
+}
 
 #### PULIZIA DEI DATI
 library(readxl)
@@ -341,6 +346,7 @@ plot_accuracy <- ggplot(Accuracy_models_Melt, aes(x=variable, y=value, color = v
         axis.text= element_text(size =10, face = "italic")
   )
 
+plot_accuracy
 
 # F1 SCORE 
 # Replico gli stessi step per f1 score
