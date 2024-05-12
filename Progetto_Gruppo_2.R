@@ -377,9 +377,6 @@ predicted_df <- transform(
 
 predicted_df$id <- 1:nrow(predicted_df)
 
-print(predicted_df)
-
-
 ### Creazione corpus e DFM 
 
 ## DF dell'intero df: test_set+training_set
