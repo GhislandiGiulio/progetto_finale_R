@@ -15,9 +15,6 @@ for (package in packages) {
 }
 
 #### PULIZIA DEI DATI
-library(readxl)
-library(writexl)
-library(dplyr)
 
 # impostazione della cartella di lavoro
 setwd(getwd())
@@ -57,7 +54,6 @@ training_set <- read_excel("df_after_sentiment.xlsx")
 test_set <- anti_join(clean_df_french_bakeries, training_set)
 
 # mostriamo i risultati
-library(kableExtra)
 
 print(kbl(clean_df_french_bakeries[1:5, ], longtable = T, booktabs = T, 
     caption = "Il dataset") %>%
@@ -70,10 +66,6 @@ print(kbl(clean_df_french_bakeries[1:5, ], longtable = T, booktabs = T,
     #### SEZIONE DI PRE-PROCESSING
 
 ### Librerie per pre-processing
-library(readtext)
-library(quanteda)
-library(quanteda.textstats)
-library(quanteda.textplots)
 
 
 ### Creazione corpus e DFM 
@@ -138,9 +130,6 @@ dfm_training_set@docvars$sentiment <- as.factor(dfm_training_set@docvars$sentime
 
 
   #### CROSS VALIDATION
-
-library(cvTools)
-library(caret)
 
 # duplicazione della matrice del training set 
 matrice_training_set2 <- matrice_training_set
@@ -308,7 +297,6 @@ print(AverageF1_SV)
   ####  COMPARAZIONE RISULTATI
 
 #Comparazione
-library(reshape2)
 
 # ACCURACY 
 #Creo un dataframe per NB
@@ -380,7 +368,6 @@ plot_f1 <- ggplot(f1_models_melt, aes(x=variable, y=value, color = variable)) +
   )
 
 
-library(gridExtra)
 #Visualizzo i due grafici 
 grid.arrange(plot_accuracy, plot_f1, nrow=2)
 
@@ -679,6 +666,9 @@ final_df <- select(final_df, -text, -Qualità, -Personale, -Prezzo, -Location, -
 final_df <- final_df %>%
   group_by(Players) %>%
   summarise(across(where(is.numeric), mean, na.rm = TRUE))
+
+# aggiunta excel
+write_xlsx(final_df, "final_results.xlsx")
 
 # visualizzazione dataset finale raggruppato
 print(kbl(final_df, longtable = T, booktabs = T, 
