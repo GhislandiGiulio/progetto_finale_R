@@ -372,7 +372,7 @@ grid.arrange(plot_accuracy, plot_f1, nrow=2)
   #### DRIVER ANALYSIS
 
 # Creazione del dataframe con sentiment previsto
-predicted_df <- transform(test_set, sentiment = NB_test_predicted) %>%
+predicted_df <- transform(test_set, sentiment = df_measures_NB) %>%
   rbind(training_set, .)
 
 predicted_df$id <- 1:nrow(predicted_df)
@@ -436,17 +436,12 @@ print(kbl(driver_analysis[1:15, ], longtable = T, booktabs = T,
 ## Creazione dataframe finale
 print(driver_analysis %>% group_by(Players))
 
-# Iterate over each unique value in the "Players" column
-for (player in unique(df$Players)) {
-  # Subset the dataframe for the current player
-  player_df <- df[df$Players == player, ]
-  
-  # Calculate the average sentiment score for the current player
-  player_sentiment <- mean(ifelse(player_df$Sentiment == "positive", 10,
-                                  ifelse(player_df$Sentiment == "neutral", 5, 0)), na.rm = TRUE)
-  
-  # Assign the average sentiment score to the vector
-  sentiment_scores[player] <- player_sentiment
+# Split dataframe into a list of dataframes based on unique values of Players
+list_of_dfs <- split(driver_analysis, driver_analysis$Players)
+
+# Optionally, if you want to assign each dataframe to a separate variable
+for (player_name in names(list_of_dfs)) {
+  assign(paste0("df_", player_name), list_of_dfs[[player_name]])
 }
 
 
