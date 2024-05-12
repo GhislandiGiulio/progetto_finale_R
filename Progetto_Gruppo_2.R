@@ -502,3 +502,67 @@ plot_f1 <- ggplot(f1_models_melt, aes(x=variable, y=value, color = variable)) +
 library(gridExtra)
 #Visualizzo i due grafici 
 grid.arrange(plot_accuracy, plot_f1, nrow=2)
+
+
+  #### DRIVER ANALYSIS
+
+# Creazione del dataframe con sentiment previsto
+predicted_df <- transform(test_set, sentiment = NB_test_predicted) %>%
+  rbind(training_set, .)
+
+predicted_df$id <- 1:nrow(predicted_df)
+
+print(predicted_df)
+
+
+### Creazione corpus e DFM 
+
+## DF dell'intero df: test_set+training_set
+
+# Corpus
+corpus_predicted_df <- corpus(predicted_df)
+
+# dfm
+dfm_predicted_df <- corpus_predicted_df %>%
+  tokens(remove_punct = TRUE, remove_numbers = TRUE) %>%
+  tokens_remove(pattern = stopwords("french")) %>%
+  tokens_tolower() %>%
+  tokens_wordstem() %>%
+  dfm()
+
+## Creazione del dizionario per la DRIVER ANALYSIS
+# Costruzione del dizionario
+rating_drivers <- dictionary(list(Personale = c("gentil*", "cordial*", "accueillant*", "disponible*",
+                                        "personnel*", "malpoli*", "impoli*", "courtois*",
+                                        "personne*"),
+                          Qualità = c("bon*", "qualité*", "excellent*", "optimal*"),
+                          Prezzo = c("prix*", "coût*", "tarif*"),
+                          Location = c("beau*", "propre*", "sale*", "soigné*", "mignon*",
+                                          "local", "emplacement", "position*", "au centre",
+                                          "Vomero")))
+
+# applicazione del dizionario sulla dfm
+#Applicazione del dizionario alla dfm
+
+bakeries_drivers <- dfm_lookup(dfm_predicted_df, #dfm su cui lo applico
+                              rating_drivers)  #dizionario
+
+# conversione dell'output in data frame
+df_bakeries_drivers <- convert(bakeries_drivers, to = "data.frame")
+
+#2. Aggiungere un id che verrà utilizzato per il merging
+df_bakeries_drivers$id <- 1:nrow(df_bakeries_drivers)
+
+## Unione dei due dataset
+driver_analysis <- full_join(df_bakeries_drivers, predicted_df, by = join_by("id"))
+
+
+#Selezioniamo soltanto le variabili rilevanti
+driver_analysis <- select(driver_analysis, id, text, Personale, Qualità, Prezzo, Location, score_rating, sentiment)
+
+#Il dataset finale
+kbl(driver_analysis[1:15, ], longtable = T, booktabs = T, 
+    caption = "I driver menzionati nelle recensioni") %>%
+  kable_styling(c("bordered", "condensed", "hover"), 
+                full_width = F, font_size = 8) %>%
+  row_spec(0, color = "black", bold = T, background = "#b8daba", font_size = 11)
